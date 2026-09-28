@@ -1,7 +1,7 @@
 {
   "name": "NedFlix",
   "short_name": "NedFlix",
-  "id": "/NedFlix/?v=2",
+  "id": "/nedflix-app/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
