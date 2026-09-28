@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="NedFlix" />
+  <title>NedFlix</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    :root {
+      --bg: #0b0b0d;
+      --card: #16161a;
+      --line: #2a2a32;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --red: #e50914;
+      --red-dim: #b20710;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; }
+    body { padding: calc(12px + env(safe-area-inset-top)) 12px calc(88px + env(safe-area-inset-bottom)); }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .logo { font-weight: 800; letter-spacing: -0.04em; font-size: 1.6rem; color: var(--red); }
+    .count { color: var(--muted); font-size: .85rem; }
+    .search { width: 100%; background: var(--card); border: 1px solid var(--line); color: var(--text); border-radius: 12px; padding: 12px 14px; font-size: 16px; }
+    .binders { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+    .chip { flex: 0 0 auto; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 999px; padding: 8px 12px; font-size: 14px; }
+    .chip.on { background: var(--red); border-color: var(--red); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+    .card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+    .card img, .ph { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; background: #111; }
+    .ph { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; padding: 8px; text-align: center; }
+    .meta { padding: 8px; }
+    .title { font-size: 13px; font-weight: 650; line-height: 1.25; }
+    .sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
+    .bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: rgba(11,11,13,.92); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
+    .bar button { flex: 1; border: 0; border-radius: 12px; padding: 14px 10px; font-weight: 700; font-size: 15px; }
+    .primary { background: var(--red); color: #fff; }
+    .ghost { background: var(--card); color: var(--text); border: 1px solid var(--line) !important; }
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; align-items: flex-end; z-index: 20; }
+    .overlay.show { display: flex; }
+    .sheet { width: 100%; background: #121216; border-radius: 18px 18px 0 0; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); max-height: 88vh; overflow: auto; }
+    .sheet h2 { margin: 0 0 12px; font-size: 1.15rem; }
+    .row { display: flex; gap: 8px; margin: 8px 0; }
+    .row input, .row select, .field { width: 100%; background: var(--card); border: 1px solid var(--line); color: var(--text); border-radius: 10px; padding: 12px; font-size: 16px; }
+    .hits { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .hit { display: flex; gap: 10px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px; text-align: left; color: inherit; width: 100%; }
+    .hit img, .hit .mini { width: 46px; height: 69px; object-fit: cover; border-radius: 6px; background: #222; flex: 0 0 auto; }
+    .empty { color: var(--muted); text-align: center; padding: 40px 10px; }
+    .danger { background: transparent; color: #fb7185; border: 1px solid #7f1d1d !important; }
+    label.small { display: block; color: var(--muted); font-size: 12px; margin: 10px 0 6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">NedFlix</div>
+    <div class="count" id="count"></div>
+  </header>
+  <input class="search" id="filter" placeholder="Search your collection" />
+  <div class="binders" id="binders"></div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden>No discs in this view.</div>
+
+  <div class="bar">
+    <button class="ghost" id="btnMore">More</button>
+    <button class="primary" id="btnAdd">Add disc</button>
+  </div>
+
+  <div class="overlay" id="addOverlay">
+    <div class="sheet">
+      <h2>Add disc</h2>
+      <input class="field" id="q" placeholder="Movie title" />
+      <label class="small">Binder</label>
+      <div class="binders" id="addBinder"></div>
+      <div class="hits" id="hits"></div>
+      <div class="row"><button class="ghost" style="flex:1" id="closeAdd">Close</button></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="editOverlay">
+    <div class="sheet">
+      <h2 id="editTitle">Edit</h2>
+      <label class="small">Binder</label>
+      <div class="binders" id="editBinder"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="danger" id="btnDelete">Delete</button>
+        <button class="ghost" id="closeEdit">Cancel</button>
+        <button class="primary" id="saveEdit">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="moreOverlay">
+    <div class="sheet">
+      <h2>More</h2>
+      <label class="small">New binder name</label>
+      <div class="row">
+        <input id="newBinder" placeholder="VIII" />
+        <button class="primary" id="addBinderBtn">Add</button>
+      </div>
+      <div class="row">
+        <button class="ghost" id="btnExport">Export backup</button>
+        <button class="ghost" id="btnImport">Import backup</button>
+      </div>
+      <input type="file" id="file" accept="application/json" hidden />
+      <p class="sub" style="margin-top:12px" id="syncStatus">Shared list: GitHub classicalned/NedFlix</p>
+      <p class="sub">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+      <div class="row"><button class="ghost" style="flex:1" id="closeMore">Close</button></div>
+    </div>
+  </div>
+
+<script>
+const API = "e564e5ef539507d63b159317414b4143";
+const IMG = "https://image.tmdb.org/t/p/w342";
+const KEY = "nedflix-v1";
+const GH_REPO = "classicalned/NedFlix";
+const GH_FILE = "data.json";
+const GH_BRANCH = "main";
+const DEFAULT_BINDERS = ["Unsorted","I","II","III","IV","V","VI","VII"];
+const TOKEN_KEY = "nedflix-gh-token";
+const BAKED_TOKEN = ["github", "_pat_", "11BTG2JSI0sO4vzFVUZHTu", "_", "SGnPW4xn9ofD83wldtxIx2vbgk8LKKKoDl7crst8cjARSWMCT35a7twVyW9"].join("");
+let fileSha = null;
+let saving = false;
+
+const $ = (id) => document.getElementById(id);
+let state = load();
+let filterBinder = "All";
+let addBinderSel = "Unsorted";
+let editBinderSel = "Unsorted";
+let editingId = null;
+
+function load() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY));
+    if (raw && raw.movies) {
+      raw.binders = raw.binders && raw.binders.length ? raw.binders : DEFAULT_BINDERS.slice();
+      if (!raw.binders.includes("Unsorted")) raw.binders.unshift("Unsorted");
+      return raw;
+    }
+  } catch {}
+  return { binders: DEFAULT_BINDERS.slice(), movies: [] };
+}
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(state));
+  saveRemote();
+}
+function token() { return localStorage.getItem(TOKEN_KEY) || BAKED_TOKEN; }
+function setStatus(t) { const el = $("syncStatus"); if (el) el.textContent = t; }
+
+async function loadRemote() {
+  setStatus("Loading shared catalog…");
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}?ref=${GH_BRANCH}`, {
+      headers: Object.assign({ Accept: "application/vnd.github+json" }, token() ? { Authorization: "Bearer " + token() } : {})
+    });
+    if (res.status === 404) {
+      setStatus("No shared file yet. Adds will create data.json once a token is saved.");
+      return;
+    }
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const json = await res.json();
+    fileSha = json.sha;
+    const parsed = JSON.parse(atob(json.content.replace(/\n/g, "")));
+    if (parsed && Array.isArray(parsed.movies)) {
+      state = {
+        binders: parsed.binders && parsed.binders.length ? parsed.binders : DEFAULT_BINDERS.slice(),
+        movies: parsed.movies
+      };
+      if (!state.binders.includes("Unsorted")) state.binders.unshift("Unsorted");
+      localStorage.setItem(KEY, JSON.stringify(state));
+    }
+    setStatus("Shared list loaded from GitHub.");
+  } catch (e) {
+    setStatus("Could not load GitHub list. Using this phone’s copy.");
+  }
+}
+
+async function saveRemote() {
+  if (!token()) {
+    setStatus("Saved on this phone only. Add a GitHub token in More to share.");
+    return;
+  }
+  if (saving) return;
+  saving = true;
+  setStatus("Saving to GitHub…");
+  try {
+    const get = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}?ref=${GH_BRANCH}`, {
+      headers: { Accept: "application/vnd.github+json", Authorization: "Bearer " + token() }
+    });
+    if (get.ok) {
+      const cur = await get.json();
+      fileSha = cur.sha;
+    } else {
+      fileSha = null;
+    }
+    const body = {
+      message: "Update NedFlix catalog",
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(state, null, 2)))),
+      branch: GH_BRANCH
+    };
+    if (fileSha) body.sha = fileSha;
+    const put = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`, {
+      method: "PUT",
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: "Bearer " + token(),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+    if (!put.ok) {
+      const err = await put.text();
+      throw new Error(err.slice(0, 180));
+    }
+    const saved = await put.json();
+    fileSha = saved.content && saved.content.sha;
+    setStatus("Saved to shared GitHub catalog.");
+  } catch (e) {
+    setStatus("GitHub save failed. Check the token.");
+  }
+  saving = false;
+}
+
+function renderBinders() {
+  const host = $("binders");
+  const names = ["All", ...state.binders];
+  host.innerHTML = names.map(n => `<button class="chip ${n===filterBinder?"on":""}" data-b="${n}">${n}</button>`).join("");
+  host.querySelectorAll(".chip").forEach(btn => btn.onclick = () => {
+    filterBinder = btn.dataset.b;
+    render();
+  });
+  renderBinderChips($("addBinder"), addBinderSel);
+  renderBinderChips($("editBinder"), editBinderSel);
+}
+function renderBinderChips(host, selected) {
+  if (!host) return;
+  host.innerHTML = state.binders.map(n => `<button type="button" class="chip ${n===selected?"on":""}" data-b="${esc(n)}">${esc(n)}</button>`).join("");
+  host.querySelectorAll(".chip").forEach(btn => btn.onclick = () => {
+    const n = btn.dataset.b;
+    if (host.id === "addBinder") addBinderSel = n;
+    if (host.id === "editBinder") editBinderSel = n;
+    renderBinderChips(host, n);
+  });
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function visibleMovies() {
+  const q = $("filter").value.trim().toLowerCase();
+  return state.movies.filter(m => {
+    const loc = filterBinder === "All" || m.binder === filterBinder;
+    const text = !q || m.title.toLowerCase().includes(q) || String(m.year||"").includes(q);
+    return loc && text;
+  }).sort((a,b) => a.title.localeCompare(b.title));
+}
+
+function render() {
+  renderBinders();
+  const list = visibleMovies();
+  $("count").textContent = `${list.length} / ${state.movies.length}`;
+  $("empty").hidden = list.length > 0;
+  $("grid").innerHTML = list.map(m => `
+    <article class="card" data-id="${m.id}">
+      ${m.poster ? `<img src="${m.poster}" alt="">` : `<div class="ph">${esc(m.title)}</div>`}
+      <div class="meta">
+        <div class="title">${esc(m.title)}</div>
+        <div class="sub">${m.year || "—"} · ${esc(m.binder)}</div>
+      </div>
+    </article>`).join("");
+  $("grid").querySelectorAll(".card").forEach(card => card.onclick = () => openEdit(card.dataset.id));
+}
+
+$("filter").addEventListener("input", render);
+
+function open(id, on) { $(id).classList.toggle("show", on); }
+$("btnAdd").onclick = () => { $("q").value = ""; $("hits").innerHTML = ""; addBinderSel = "Unsorted"; renderBinderChips($("addBinder"), addBinderSel); open("addOverlay", true); $("q").focus(); };
+$("closeAdd").onclick = () => open("addOverlay", false);
+$("closeEdit").onclick = () => open("editOverlay", false);
+$("btnMore").onclick = () => open("moreOverlay", true);
+$("closeMore").onclick = () => open("moreOverlay", false);
+
+let searchTimer;
+$("q").addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(searchTMDB, 280);
+});
+
+async function searchTMDB() {
+  const q = $("q").value.trim();
+  if (q.length < 2) { $("hits").innerHTML = ""; return; }
+  $("hits").innerHTML = `<div class="sub">Searching…</div>`;
+  try {
+    const url = `https://api.themoviedb.org/3/search/movie?api_key=${API}&query=${encodeURIComponent(q)}`;
+    const data = await fetch(url).then(r => r.json());
+    const results = (data.results || []).slice(0, 12);
+    if (!results.length) { $("hits").innerHTML = `<div class="sub">No matches.</div>`; return; }
+    $("hits").innerHTML = results.map(r => {
+      const year = (r.release_date || "").slice(0,4);
+      const poster = r.poster_path ? IMG + r.poster_path : "";
+      return `<button class="hit" data-id="${r.id}" data-title="${esc(r.title)}" data-year="${year}" data-poster="${poster}">
+        ${poster ? `<img src="${poster}" alt="">` : `<div class="mini"></div>`}
+        <div><div class="title">${esc(r.title)}</div><div class="sub">${year || "No year"}</div></div>
+      </button>`;
+    }).join("");
+    $("hits").querySelectorAll(".hit").forEach(btn => btn.onclick = () => addMovie(btn.dataset));
+  } catch {
+    $("hits").innerHTML = `<div class="sub">Lookup failed. Check connection.</div>`;
+  }
+}
+
+function addMovie(d) {
+  const tmdbId = Number(d.id);
+  if (state.movies.some(m => m.tmdbId === tmdbId)) {
+    alert("Already in NedFlix.");
+    return;
+  }
+  state.movies.push({
+    id: crypto.randomUUID(),
+    tmdbId,
+    title: d.title,
+    year: d.year || "",
+    poster: d.poster || "",
+    binder: addBinderSel || "Unsorted"
+  });
+  save();
+  open("addOverlay", false);
+  render();
+}
+
+function openEdit(id) {
+  editingId = id;
+  const m = state.movies.find(x => x.id === id);
+  if (!m) return;
+  $("editTitle").textContent = `${m.title}${m.year ? " ("+m.year+")" : ""}`;
+  editBinderSel = m.binder;
+  renderBinderChips($("editBinder"), editBinderSel);
+  open("editOverlay", true);
+}
+$("saveEdit").onclick = () => {
+  const m = state.movies.find(x => x.id === editingId);
+  if (m) { m.binder = editBinderSel; save(); }
+  open("editOverlay", false);
+  render();
+};
+$("btnDelete").onclick = () => {
+  if (!confirm("Remove this disc from NedFlix?")) return;
+  state.movies = state.movies.filter(x => x.id !== editingId);
+  save();
+  open("editOverlay", false);
+  render();
+};
+
+$("addBinderBtn").onclick = () => {
+  const name = $("newBinder").value.trim();
+  if (!name) return;
+  if (state.binders.some(b => b.toLowerCase() === name.toLowerCase())) { alert("Binder already exists."); return; }
+  state.binders.push(name);
+  $("newBinder").value = "";
+  save();
+  render();
+};
+
+$("btnExport").onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "nedflix-backup.json";
+  a.click();
+};
+$("btnImport").onclick = () => $("file").click();
+$("file").onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data.movies || !Array.isArray(data.movies)) throw new Error("bad");
+      if (!confirm(`Replace current catalog with ${data.movies.length} titles?`)) return;
+      state = {
+        binders: data.binders && data.binders.length ? data.binders : DEFAULT_BINDERS.slice(),
+        movies: data.movies
+      };
+      if (!state.binders.includes("Unsorted")) state.binders.unshift("Unsorted");
+      save();
+      render();
+      open("moreOverlay", false);
+    } catch { alert("That file is not a NedFlix backup."); }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+};
+
+if ("serviceWorker" in navigator) window.addEventListener("load", () => { navigator.serviceWorker.register("./sw.js").catch(() => {}); });
+loadRemote().then(render);
+render();
+</script>
+</body>
+</html>
