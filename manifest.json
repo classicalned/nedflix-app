@@ -1,6 +1,6 @@
 {
-  "name": "NedFlix",
-  "short_name": "NedFlix",
+  "name": "NedFlix Discs",
+  "short_name": "NedFlix Discs",
   "id": "/nedflix-app/",
   "start_url": "./index.html",
   "scope": "./",
